@@ -20,7 +20,7 @@ def cube_to_total(fitsfile, plotspec=True):
         try:
             ff.writeto(averagedfile, clobber=True)
         except:
-            print "Failed to write "+averagedfile
+            print("Failed to write "+averagedfile)
         if plotspec:
             sp = pyspeckit.Spectrum(averagedfile,doplot=True)
             sp.plotter.savefig(averagedfile.replace(".fits",".png"))

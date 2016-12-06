@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 from numpy import pi
 import pyfits
@@ -10,8 +11,9 @@ mh = 1.67e-24
 G = 6.67e-8 # CGS
 
 
-def make_model(filename, rmax, rproffunc, abund, tk, vr, td=None, dv_fwhm=1.0, ne=None,
-        te=None, vz=None, ncells=20, gastodust=100., tcmb=2.725, mindens=0.0, **kwargs): 
+def make_model(filename, rmax, rproffunc, abund, tk, vr, td=None, dv_fwhm=1.0,
+               ne=None, te=None, vz=None, ncells=20, gastodust=100.,
+               tcmb=2.725, mindens=0.0, **kwargs):
     """
     Generate a RATRAN source model with a density profile (density as a
     function of r) given by rproffunc.  kwargs are passed to the radial profile
@@ -23,30 +25,32 @@ def make_model(filename, rmax, rproffunc, abund, tk, vr, td=None, dv_fwhm=1.0, n
     outf = open(filename,'w')
 
     db = dv_fwhm/(np.sqrt(4*np.log(2)))
-    if td is None: td=tk
+    if td is None:
+        td=tk
 
     # make header
-    print >>outf,"rmax=%g" % rmax
-    print >>outf,"ncell=%i" % ncells
-    print >>outf,"tcmb=%f" % tcmb
+    print("rmax=%g" % rmax, file=outf)
+    print("ncell=%i" % ncells, file=outf)
+    print("tcmb=%f" % tcmb, file=outf)
     cols = "id,ra,rb,nh,nm,tk,td,db,vr"
     if ne is not None and te is not None:
         cols += ",ne,te"
     if vz is not None:
         cols += ",vz"
-    ncols = cols.count(",") + 1
-    print >>outf,"columns=%s" % (cols)
-    print >>outf,"gas:dust=%f" % gastodust
-    print >>outf,"@"
+    #ncols = cols.count(",") + 1
+    print("columns=%s" % (cols), file=outf)
+    print("gas:dust=%f" % gastodust, file=outf)
+    print("@", file=outf)
 
     radarr = np.linspace(0.0,rmax,ncells+1)
     midradarr = (radarr[1:]+radarr[:-1])/2.0
-    nharr  = rproffunc(midradarr,**kwargs)
+    nharr = rproffunc(midradarr,**kwargs)
     nharr[nharr < mindens] = mindens
-    if not all(radarr == np.sort(radarr)): import pdb; pdb.set_trace()
+    if not all(radarr == np.sort(radarr)):
+        import pdb; pdb.set_trace()
 
     vardict = {"tk":tk,"td":td,"vr":vr,"abund":abund,"ne":ne,"te":te,"vz":vz,"db":db,}
-    for varname,var in vardict.iteritems():
+    for varname,var in vardict.items():
         if var is None:
             # variable not specified
             continue
@@ -59,16 +63,17 @@ def make_model(filename, rmax, rproffunc, abund, tk, vr, td=None, dv_fwhm=1.0, n
         else:
             raise ValueError("Variable has wrong size.")
 
-    for ii in xrange(ncells):
+    for ii in range(ncells):
 
-        if radarr[ii+1] <= radarr[ii]: import pdb; pdb.set_trace()
+        if radarr[ii+1] <= radarr[ii]:
+            import pdb; pdb.set_trace()
         outline = "%10i %15g %15g %15g %15g " % (ii+1,radarr[ii],radarr[ii+1],nharr[ii],nharr[ii]*abund[ii])
         outline += "%15g %15g %15g %15g " % (tk[ii],td[ii],db[ii],vr[ii])
         if ne is not None and te is not None:
             outline += "%15g %15g " % (ne[ii],te[ii])
         if vz is not None:
             outline += "%15g " % (vz[ii])
-        print >>outf,outline
+        print(outline, file=outf)
 
     outf.close()
 
@@ -80,11 +85,11 @@ def mt03(r, column=1e22, krho=1.5, mass=1.0, rhoouter=1e3, zh2=2.8,mh=1.66053886
     r = r*1e2 # convert to cm
     r[r<r_inner] = r_inner
     r_outer = (mass*msun/(pi * column * mh * zh2))**0.5
-    A = (4-krho)*mass*msun / (4/3. * pi * r_outer**(4-krho)) 
+    A = (4-krho)*mass*msun / (4/3. * pi * r_outer**(4-krho))
     # equivalent to prev. line A = mass*msun / (r_outer**(4-krho)) * (3*(4-krho)/(4.*pi))
 
-    rho = ((A * r**-krho / (zh2*mh) ) * (r<r_outer) +
-            rhoouter*zh2*mh * (r>r_outer))
+    rho = ((A * r**-krho / (zh2*mh)) * (r<r_outer) + rhoouter*zh2*mh *
+           (r>r_outer))
 
     nh2 = rho / zh2 / mh
 
@@ -95,7 +100,7 @@ def plummer(r,mtot=0,a=0,zh2=2.8,mh=1.66053886e-24,ismeters=True):
     """
     Return the density given a Plummer profile
     """
-    
+
     scale = 1e-6 if ismeters else 1.0
     rho = 3 * mtot / (4*np.pi*a**3) * ( 1. + r**2/a**2 )**(-2.5)
     nh2 = rho / (mh*zh2)
@@ -133,9 +138,9 @@ def bonnorebert(r,ncenter=1e5,ximax=6.9,viso=0.24,zh2=2.8):
     """
     # cm
     rbreak = ximax*(viso*1e5) / np.sqrt(4*np.pi*G*ncenter*mh*zh2)
-    # to m 
+    # to m
     rbreak /= 100.
-    print "bonnorebert rbreak: %g " % rbreak
+    print("bonnorebert rbreak: %g " % rbreak)
 
     return broken_powerlaw(r,rbreak=rbreak,n0=ncenter)
 
@@ -143,14 +148,14 @@ def run_model(mdlname,amc="/usr/local/bin/amc",sky="/usr/local/bin/sky",**kwargs
 
     make_amc(mdlname,**kwargs)
 
-    print "AMC command: ","%s %s.amc" % (amc,mdlname)
+    print("AMC command: ","%s %s.amc" % (amc,mdlname))
     proc1 = os.system("%s %s.amc" % (amc,mdlname))
     if proc1 != 0:
         import pdb; pdb.set_trace()
 
     make_sky(mdlname,**kwargs)
 
-    print "SKY command: ","%s %s.sky" % (sky,mdlname)
+    print("SKY command: ","%s %s.sky" % (sky,mdlname))
     proc2 = os.system("%s %s.sky" % (sky,mdlname))
     if proc2 != 0:
         import pdb; pdb.set_trace()
@@ -160,37 +165,38 @@ def make_amc(mdlname,molfile="o-h2co-scaled1.6",**kwargs):
 
     outf = open(mdlname+".amc",'w')
 
-    print >>outf,"source=%s.mdl" % mdlname
-    print >>outf,"outfile=%s.pop" % mdlname
-    print >>outf,"molfile=%s.dat" % molfile
-    print >>outf,"snr=20"
-    print >>outf,"nphot=1000"
-    print >>outf,"tnorm=2.735"
-    print >>outf,"velo=grid"
-    print >>outf,"kappa=jena,thin,e5"
-    print >>outf,"seed=1971"
-    print >>outf,"go"
-    print >>outf,"q"
+    print("source=%s.mdl" % mdlname, file=outf)
+    print("outfile=%s.pop" % mdlname, file=outf)
+    print("molfile=%s.dat" % molfile, file=outf)
+    print("snr=20", file=outf)
+    print("nphot=1000", file=outf)
+    print("tnorm=2.735", file=outf)
+    print("velo=grid", file=outf)
+    print("kappa=jena,thin,e5", file=outf)
+    print("seed=1971", file=outf)
+    print("go", file=outf)
+    print("q", file=outf)
 
     outf.close()
 
-def make_sky(mdlname,distance=100.,central=None,trans="1,3,6",
-        npix=128,pixsize=1,centralregion=32,nsightlines=2,**kwargs):
+def make_sky(mdlname, distance=100., central=None, trans="1,3,6", npix=128,
+             pixsize=1, centralregion=32, nsightlines=2, **kwargs):
 
     outf = open(mdlname+".sky",'w')
 
-    print >>outf,"source=%s.pop" % mdlname
-    print >>outf,"format=fits"
-    print >>outf,"outfile=%s" % mdlname
-    print >>outf,"trans=%s" % trans
+    print("source=%s.pop" % mdlname, file=outf)
+    print("format=fits", file=outf)
+    print("outfile=%s" % mdlname, file=outf)
+    print("trans=%s" % trans, file=outf)
     # will get the crash "Fortran runtime error: Bad integer for item 1 in list input" if these are floats
-    print >>outf,"pix=%i,%i,%i,%i" % (npix,pixsize,centralregion,nsightlines)
-    print >>outf,"chan=200,0.1"
-    if central is not None: print >>outf,"central=%s" % central
-    print >>outf,"distance=%g" % distance
-    print >>outf,"units=K"
-    print >>outf,"go"
-    print >>outf,"q"
+    print("pix=%i,%i,%i,%i" % (npix,pixsize,centralregion,nsightlines), file=outf)
+    print("chan=200,0.1", file=outf)
+    if central is not None:
+        print("central=%s" % central, file=outf)
+    print("distance=%g" % distance, file=outf)
+    print("units=K", file=outf)
+    print("go", file=outf)
+    print("q", file=outf)
 
     outf.close()
 
@@ -199,7 +205,7 @@ def make_averagespec(mdlname,trans="1,3,6",clobber=True):
     for tnum in trans.split(","):
         fn = mdlname+"_%03i.fits" % tnum
         pf = pyfits.open(fn)
-        meanspec = pf[0].data.mean(axis=1).mean(axis=0)
+        #meanspec = pf[0].data.mean(axis=1).mean(axis=0)
         for k in "CTYPE1","CTYPE2","CDELT1","CDELT2","CRVAL1","CRVAL2","CRPIX1","CRPIX2":
             del pf[0].header[k]
         for k in "CTYPE1","CDELT1","CRVAL1","CRPIX1":

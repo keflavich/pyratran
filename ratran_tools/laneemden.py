@@ -68,7 +68,7 @@ if __name__ == "__main__":
               smin=s2[i]
               imin=i
           i+=1
-       print n, s1[imin]
+       print(n, s1[imin])
      
        pl.plot(s1,s2,'k')
     #   pl.xlim(0,10)
